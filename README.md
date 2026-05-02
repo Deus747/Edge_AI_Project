@@ -90,10 +90,6 @@ The system is designed to:
 - Convert all trained models into Hailo-compatible HEF files via PTQ-based compilation
 - Run a live Raspberry Pi demo with semantic overlay, YOLO overlay, and on-the-fly model switching
 
-The full pipeline demonstrates:
-
-> **Dataset preprocessing → semantic & YOLO training → logit knowledge distillation → Hailo compilation → Raspberry Pi deployment**
-
 ---
 
 ## Hardware and Software
