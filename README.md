@@ -50,7 +50,6 @@ Cloud-based perception is unsuitable for low-latency embedded systems. The goal 
 
 The main objective is to develop a deployable edge perception system that:
 
-* Converts IDD polygon annotations into trainable segmentation masks
 * Trains semantic segmentation models at multiple label granularities
 * Uses logit knowledge distillation to train compact student models
 * Trains a YOLOv8n-seg model for foreground object instances
@@ -59,7 +58,7 @@ The main objective is to develop a deployable edge perception system that:
 
 The final system demonstrates:
 
-> IDD dataset preprocessing -> semantic and YOLO training -> logit KD -> Hailo compilation -> Raspberry Pi deployment.
+> Dataset preprocessing -> semantic and YOLO training -> logit KD -> Hailo compilation -> Raspberry Pi deployment.
 
 ---
 
@@ -88,6 +87,8 @@ The final system demonstrates:
 ---
 
 ## Dataset Preprocessing
+
+The Dataset Link : https://idd.insaan.iiit.ac.in/dataset/details/
 
 The dataset preprocessing code is in:
 
@@ -376,15 +377,12 @@ Future improvements can include:
 
 Project members:
 
-* **[Name 1]**
-* **[Name 2]**
-* **[Name 3]**
+* **Debanshu Mallick**
+* **Chandan Rai**
+* **Tamaghna Mandal**
+* **Yuvaraj DC**
 
 Mentor / Supervisor:
 
-* **[Mentor Name]**, **[Department / Lab / Institution]**
-
-Contact:
-
-* **[email@example.com]**
+* **Pandarasamy Arjunan**, **RBCCPS, Indian Institute of Science**
 
