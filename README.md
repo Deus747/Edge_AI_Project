@@ -9,12 +9,14 @@ An end-to-end **Edge AI road-scene perception pipeline** built on the **India Dr
 
 ## Highlights
 
-- **End-to-end edge AI pipeline** — Raw IDD polygon annotations are converted into masks, models are trained, compiled for Hailo, and deployed on Raspberry Pi.
+- **End-to-end edge AI pipeline** — Raw polygon annotations are converted into masks, models are trained, compiled for Hailo, and deployed on Raspberry Pi.
 - **Hybrid perception system** — Semantic segmentation handles dense road layout understanding, while YOLOv8n-seg provides object-level masks for dynamic road users.
 - **Multiple semantic deployment models** — Three Hailo semantic models are available for different speed/accuracy trade-offs.
 - **Logit knowledge distillation** — Compact student models are trained using softened teacher predictions to improve edge-device performance.
 - **Hailo-ready deployment** — Final `.hef` weights are included for the Raspberry Pi demo.
-- **Clean repository structure** — Logs, scheduler files, calibration data, ONNX/HAR intermediates, and training checkpoints are intentionally excluded.
+
+<img width="1440" height="252" alt="image" src="https://github.com/user-attachments/assets/ed97f37e-76ac-4eaf-b562-8186f64be485" />
+
 
 ---
 
@@ -30,7 +32,43 @@ An end-to-end **Edge AI road-scene perception pipeline** built on the **India Dr
 └── README.md                   # Project overview and documentation
 ```
 
-Each top-level folder contains its own `requirements.txt`.
+Each top-level folder contains its own `requirements.txt` and README.md .
+
+
+
+## The Hailo Accelerator
+
+The **Hailo AI accelerator** is a purpose-built neural network inference chip designed for edge devices. Unlike a general-purpose CPU or even a GPU, the Hailo chip executes only inference workloads and is optimised at the silicon level for the data movement patterns of convolutional neural networks. On a Raspberry Pi — which has no discrete GPU — the Hailo accelerator serves as the dedicated inference engine, offloading model execution entirely from the Pi's ARM CPU.
+
+---
+
+## Model Compression: PyTorch Checkpoint → HEF
+
+Getting a PyTorch model to run efficiently on the Hailo chip requires a multi-stage compilation and compression pipeline. Each step reduces the model's footprint and adapts it to the constraints of the target hardware.
+
+```
+PyTorch checkpoint (.pth / .pt)
+  → ONNX               # hardware-agnostic portable inference graph
+  → HAR                # Hailo Archive: graph parsed and mapped to Hailo ops
+  → Optimized HAR      # post-training quantization applied (FP32 → INT8)
+  → HEF                # Hailo Executable Format: compiled binary for the chip
+```
+
+<img width="1440" height="400" alt="image" src="https://github.com/user-attachments/assets/80b0213a-7431-457c-8dae-42f2b2f50917" />
+
+
+The most significant compression step is **post-training quantization (PTQ)**, applied during the HAR → Optimized HAR stage. The Hailo Dataflow Compiler uses a small calibration dataset — representative input images — to estimate the distribution of activations throughout the network, then converts all weights and activations from 32-bit floating point (FP32) to 8-bit integers (INT8). This reduces model size by approximately **4×** and enables the Hailo chip to use its fast integer arithmetic units, which are substantially more power-efficient than floating-point computation.
+
+Beyond quantization, the Hailo compiler also performs **operator fusion** — merging sequences of operations such as convolution + batch norm + activation into single hardware primitives — and schedules the resulting computation graph across the chip's internal dataflow architecture to maximise parallelism and minimise memory traffic. The final HEF binary is a fully compiled, hardware-specific executable loaded directly by HailoRT on the device.
+
+The compression achieved across all four deployed models:
+
+| Model | Architecture | FP32 size (est.) | HEF size | Compression |
+|-------|-------------|---------------:|--------:|:-----------:|
+| Model 1 | MobileNetV4-S + LR-ASPP | ~5.4 MiB | 1.34 MiB | ~4× |
+| Model 2 | MobileNetV4-L + DeepLabV3+ | ~177.4 MiB | 6.60 MiB | ~20× |
+| Model 3 | MobileNetV4-S + DeepLabV3+ | ~39.7 MiB | 9.93 MiB | ~4× |
+| YOLOv8n-seg | YOLOv8n-seg | ~28.3 MiB | 7.07 MiB | ~4× |
 
 ---
 
@@ -49,10 +87,10 @@ The system is designed to:
 - Train semantic segmentation models across multiple label granularities
 - Apply logit knowledge distillation to produce compact, high-quality student models
 - Train a YOLOv8n-seg model for dynamic foreground object instance segmentation
-- Convert all trained models into Hailo-compatible HEF files
+- Convert all trained models into Hailo-compatible HEF files via PTQ-based compilation
 - Run a live Raspberry Pi demo with semantic overlay, YOLO overlay, and on-the-fly model switching
 
-The final pipeline demonstrates:
+The full pipeline demonstrates:
 
 > **Dataset preprocessing → semantic & YOLO training → logit knowledge distillation → Hailo compilation → Raspberry Pi deployment**
 
@@ -80,7 +118,9 @@ The final pipeline demonstrates:
 
 **Dataset link:** https://idd.insaan.iiit.ac.in/dataset/details/
 
-The preprocessing notebook `dataset_preprocessing/idd_polygon_to_masks_preprocessing.ipynb` converts raw IDD polygon JSON annotations into dense pixel masks. The main entry point is:
+The IDD dataset provides road scene images captured across Indian cities, annotated with fine-grained polygon labels covering a rich set of scene categories. The preprocessing notebook `dataset_preprocessing/idd_polygon_to_masks_preprocessing.ipynb` converts these raw polygon JSON annotations into dense pixel masks suitable for training segmentation models.
+
+The main entry point is:
 
 ```python
 run_pipeline(
@@ -103,7 +143,7 @@ Supported label encodings:
 | `level3Id` | 26-class fine semantic labels |
 | `id`, `csId`, `csTrainId`, `level4Id`, `unifiedId` | Alternate encodings |
 
-Expected directory layout after conversion:
+The deployed system uses `level2Id` — 16 classes that strike a practical balance between scene coverage and class frequency, well-suited for training compact models. Expected directory layout after conversion:
 
 ```text
 IDDL2/
@@ -118,13 +158,15 @@ IDDL2/
     masks/
 ```
 
-Semantic masks use class IDs from `0` to `C−1`. The value `255` is reserved as the ignore label.
+Semantic masks use class IDs from `0` to `C−1`. The value `255` is reserved as the ignore label and is excluded from loss computation during training.
 
 ---
 
 ## Semantic Segmentation Models
 
-Four architectures are evaluated, covering a range from lightweight deployment models to a powerful teacher network used for distillation.
+The semantic branch produces a dense per-pixel class prediction over the full image, assigning each pixel one of 16 road-scene categories. This gives the system a holistic understanding of scene layout — road surface, footpaths, barriers, vegetation, sky, buildings, and more — serving as the primary scene context layer in the deployed pipeline.
+
+Four architectures are evaluated, spanning a range from ultra-lightweight deployment models to a powerful teacher network:
 
 | Model | Architecture | Role |
 |-------|-------------|------|
@@ -132,6 +174,8 @@ Four architectures are evaluated, covering a range from lightweight deployment m
 | Model 2 | MobileNetV4-L + DeepLabV3+ | Higher-accuracy semantic deployment model |
 | Model 3 | MobileNetV4-S + DeepLabV3+ | Balanced semantic deployment model |
 | Teacher | ConvNeXt-Base + UPerNet | Strong teacher for knowledge distillation |
+
+MobileNetV4 backbones are chosen for their excellent accuracy-to-latency ratio on constrained hardware. LR-ASPP and DeepLabV3+ heads offer different trade-offs: LR-ASPP is extremely lightweight while DeepLabV3+ uses atrous spatial pyramid pooling for stronger multi-scale context at a moderate cost increase.
 
 The semantic branch predicts **16 Label2ID classes** for the deployed system.
 
@@ -141,20 +185,13 @@ The semantic branch predicts **16 Label2ID classes** for the deployed system.
 
 ## Logit Knowledge Distillation
 
-Student models are trained using a combination of ground-truth supervision and softened teacher predictions. The training objective is:
+All deployment models are trained using **logit knowledge distillation (logit KD)**, where the student learns from both the ground-truth labels and the softened output distribution of the ConvNeXt-Base + UPerNet teacher. The training objective is:
 
 ```
 loss = CE(student_logits, labels) + α · KL(teacher_logits / T, student_logits / T)
 ```
 
-where:
-
-- `CE` — supervised cross-entropy loss
-- `KL` — Kullback–Leibler divergence between teacher and student soft distributions
-- `T` — distillation temperature
-- `α` — distillation weight
-
-The main experiments used `T = 4.0` and `α = 1.0`.
+where `T = 4.0` (distillation temperature) and `α = 1.0` (distillation weight).
 
 ![Semantic logit-KD training curve](docs/images/semantic_label2_logit_kd_curve.png)
 
@@ -162,25 +199,21 @@ The main experiments used `T = 4.0` and `α = 1.0`.
 
 ## YOLOv8n-Seg Instance Segmentation
 
-YOLOv8n-seg is used to segment dynamic foreground objects, complementing the dense semantic branch with object-level masks for road users and vehicles.
+While the semantic branch provides dense scene-level understanding, it treats all pixels of a given class as a single undifferentiated region. To get object-level awareness — knowing not just that a region contains riders, but precisely which pixels belong to which individual rider — the system adds a **YOLOv8n-seg instance segmentation** branch.
 
-**YOLO classes:**
+YOLOv8n-seg runs concurrently with the semantic model on the Hailo chip, detecting and segmenting five foreground categories covering the dynamic road users most relevant to collision avoidance and path planning:
 
 | ID | Class |
 |----|-------|
 | 0 | person_animal |
 | 1 | rider |
 | 2 | motorcycle_bicycle |
-| 3 | autorickshaw_car |
+| 3 | vehicle |
 | 4 | large_vehicle |
 
-**Best results from training logs:**
+These classes are deliberately broader than standard COCO categories, reflecting the vehicle taxonomy of IDD and reducing class imbalance across Indian traffic scenes.
 
-| Metric | Value |
-|--------|------:|
-| Best box mAP50-95 | 0.210 |
-| Best mask mAP50-95 | 0.156 |
-| Best mask mAP50 | 0.326 |
+
 
 ![YOLO validation prediction](docs/images/yolo_validation_prediction.jpg)
 
@@ -194,40 +227,26 @@ YOLOv8n-seg is used to segment dynamic foreground objects, complementing the den
 
 | Deployment Model | Architecture | Label2 mIoU |
 |-----------------|-------------|------------:|
-| Model 1 | MobileNetV4-S + LR-ASPP | 59.67 (before YOLO-aware fine-tune) |
+| Model 1 | MobileNetV4-S + LR-ASPP | 59.67 |
 | Model 2 | MobileNetV4-L + DeepLabV3+ | 68.15 (with logit KD) |
 | Model 3 | MobileNetV4-S + DeepLabV3+ | 63.99 (with logit KD) |
 
-**HEF deployment artifacts included in this repository:**
+**HEF deployment artifacts and Raspberry Pi benchmarks:**
 
-| File | Model | Size | FPS on RPi |
-|------|-------|-----:|-----------|
-| `rpi_deployment/weights/model1_hailo.hef` | Model 1 semantic | 1.34 MiB | — |
-| `rpi_deployment/weights/model2_hailo.hef` | Model 2 semantic | 6.60 MiB | — |
-| `rpi_deployment/weights/model3_hailo.hef` | Model 3 semantic | 9.93 MiB | — |
-| `rpi_deployment/weights/yolov8n_seg_hailo.hef` | YOLOv8n-seg | 7.07 MiB | — |
+| File | Model | HEF Size | FPS on RPi |
+|------|-------|--------:|----------:|
+| `rpi_deployment/weights/model1_hailo.hef` | Model 1 semantic | 1.34 MiB | 16.7 |
+| `rpi_deployment/weights/model2_hailo.hef` | Model 2 semantic | 6.60 MiB | 8.8 |
+| `rpi_deployment/weights/model3_hailo.hef` | Model 3 semantic | 9.93 MiB | 14.6 |
+| `rpi_deployment/weights/yolov8n_seg_hailo.hef` | YOLOv8n-seg | 7.07 MiB | −2 FPS overhead on semantic models |
 
-> Fill in the **FPS on RPi** column with measured values from your Raspberry Pi benchmarks.
+> The YOLO model runs concurrently with the active semantic model via the pipelined demo script. The reported overhead reflects the reduction in effective FPS when both models are active simultaneously.
 
 ---
 
 ## Hailo Compilation
 
-The compilation code is in `hailo_compilation/`. The full pipeline is:
-
-```
-PyTorch checkpoint (.pth / .pt)
-  → ONNX
-  → HAR
-  → Optimized HAR
-  → HEF
-```
-
-- **ONNX** — portable inference graph
-- **HAR** — Hailo Archive used by the Hailo Dataflow Compiler
-- **HEF** — Hailo Executable Format loaded by HailoRT on Raspberry Pi
-
-Generated ONNX, HAR, optimized HAR, compiled HAR, calibration tensors, and compiler logs are not included. Place your own checkpoint in the relevant model folder before running the export and compile scripts.
+The compilation code is in `hailo_compilation/`. The full pipeline is described in the [Model Compression](#model-compression-pytorch-checkpoint--hef) section above. Generated ONNX, HAR, optimized HAR, calibration tensors, and compiler logs are not included in this repository. Place your own checkpoint in the relevant model folder before running the export and compile scripts.
 
 ```bash
 cd hailo_compilation/semantic_model3_mbv4small_deeplabv3p
@@ -240,13 +259,15 @@ bash hailo_compile.sh
 
 ## Raspberry Pi Deployment
 
-The deployment code is in `rpi_deployment/`.
+The deployment code is in `rpi_deployment/`. The demo script loads one or more HEF files into HailoRT, streams frames from a camera or video file, runs inference on the Hailo chip, and renders the segmentation overlay in real time using OpenCV and PyQt5.
 
 ```bash
 cd rpi_deployment
 pip install -r requirements.txt
 python python_if_models_switch_pipelined.py
 ```
+<img width="1440" height="640" alt="image" src="https://github.com/user-attachments/assets/aca39099-4ffc-4369-b95f-798a5bce5b3c" />
+
 
 **Benchmark mode:**
 
@@ -254,11 +275,21 @@ python python_if_models_switch_pipelined.py
 python python_if_models_switch_pipelined.py --benchmark /path/to/video.mp4 300
 ```
 
-The application supports video input, camera input, semantic model switching, YOLO overlay toggling, overlay alpha control, and Hailo HEF inference.
+The application supports:
+
+- Video file and live camera input
+- On-the-fly semantic model switching (Model 1 / 2 / 3)
+- YOLO instance overlay toggle
+- Overlay alpha blending control
+- Hailo HEF inference via HailoRT
+
+### Example — running in real time on a Raspberry Pi
+
+<img width="300" height="377" alt="Real-time demo on Raspberry Pi" src="https://github.com/user-attachments/assets/2ec9d19c-1697-4e84-be0e-7c3140da5f81" />
 
 ---
 
-## Quick Start
+## Quick Start(More finer instruction are inside each folder's README.md)
 
 ### 1. Preprocess IDD
 
@@ -312,20 +343,14 @@ pip install -r requirements.txt
 python python_if_models_switch_pipelined.py
 ```
 
-### 6. Example 
-
-
-<img width="300" height="377" alt="image" src="https://github.com/user-attachments/assets/2ec9d19c-1697-4e84-be0e-7c3140da5f81" />
-
-#### Running real time on a RPI 
 ---
 
-## Planned Improvements
+## Future Work
 
-- Larger and more representative calibration sets for improved Hailo quantization
-- Improved mask quality for using temporal smoothing
+- Larger and more representative calibration sets for improved Hailo PTQ quantization accuracy
+- Improved mask quality using temporal smoothing across frames
 - Additional semantic classes and panoptic fusion experiments
-- Introduce REID for better tracking of instance objects
+- Introduce Re-ID for better tracking of individual instance objects across frames
 
 ---
 
