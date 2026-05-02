@@ -1,6 +1,6 @@
-![IDD Edge AI Demo Input](docs/images/idd_sample_input.png)
+# Real Time Semantic and Instance Segmentation for Real-World Driving Environments
 
-# Edge AI Project: Real-Time IDD Road-Scene Segmentation and Instance Detection
+![IDD Edge AI Demo Input](docs/images/idd_sample_input.png)
 
 This project implements an end-to-end **Edge AI road-scene perception pipeline** using the **India Driving Dataset (IDD)**. The system combines **semantic segmentation** for dense scene understanding with **YOLOv8n-seg instance segmentation** for dynamic road users, then deploys the final models on a **Raspberry Pi with a Hailo accelerator**.
 
