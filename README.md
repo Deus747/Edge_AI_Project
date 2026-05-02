@@ -359,4 +359,4 @@ python python_if_models_switch_pipelined.py
 | Tamaghna Mandal | Project member |
 | Yuvaraj DC | Project member |
 
-**Mentor / Supervisor:** Pandarasamy Arjunan — RBCCPS, Indian Institute of Science
+**Mentor / Supervisor:** Pandarasamy Arjunan — RBCCPS, Indian Institute of Science | Website: https://www.samy101.com/edge-ai-26/
