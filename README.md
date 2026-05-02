@@ -350,6 +350,8 @@ python python_if_models_switch_pipelined.py
 
 ---
 
+## Disclosure: Portions of this codebase were developed with the assistance of large language model (LLM) tools. All generated code was reviewed, tested, and validated by the project team.
+
 ## Team
 
 | Name | Role |
