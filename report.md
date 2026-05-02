@@ -11,20 +11,6 @@ The project builds a real-time road-scene perception stack for the India Driving
 - A Raspberry Pi PyQt/OpenCV application that overlays semantic classes and detected dynamic objects.
 - Runtime switching between three semantic model variants.
 
-The major local project folders are:
-
-| Folder | Purpose |
-| --- | --- |
-| `combined_projects/idd_kd_project` | Original MobileNetV4-L DeepLabV3+ teacher to MobileNetV4-S LR-ASPP student experiments. |
-| `combined_projects/idd_kd_project_convnext_upernet` | ConvNeXt-Base UPerNet teacher to MobileNetV4-S student logit KD experiments. |
-| `combined_projects/idd_kd_project_student_mbv4large_deeplab` | ConvNeXt teacher to MobileNetV4-L DeepLabV3+ student experiments. |
-| `combined_projects/idd_kd_project_student_mbv4small_deeplabv3` | ConvNeXt teacher to MobileNetV4-S DeepLabV3+ student experiments. |
-| `combined_projects/idd_yolov8n_instance_seg` | YOLOv8n-seg instance segmentation training and dataset bridge. |
-| `model1_hailo`, `model2_hailo`, `model3_hailo` | Semantic ONNX, HAR, optimized HAR, and HEF export/compile workspaces. |
-| `yolov8n_seg_hailo` | YOLOv8n-seg Hailo export/compile workspace. |
-| `Final__Demo` | Raspberry Pi/Hailo demo application and deployed HEF files. |
-| `v.ipynb` | IDD polygon-to-mask conversion notebook. |
-
 ## 2. End-to-End Pipeline
 
 The full pipeline is:
