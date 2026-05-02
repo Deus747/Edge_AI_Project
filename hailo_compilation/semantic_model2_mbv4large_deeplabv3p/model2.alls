@@ -1,0 +1,5 @@
+# model2 MobileNetV4-L DeepLabV3+
+# Calibration tensors are stored in raw 0..255 RGB scale.
+normalization1 = normalization([123.675, 116.28, 103.53], [58.395, 57.12, 57.375])
+
+model_optimization_config(calibration, batch_size=1, calibset_size=64)

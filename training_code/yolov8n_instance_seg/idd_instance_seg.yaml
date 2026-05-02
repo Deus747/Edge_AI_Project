@@ -1,0 +1,9 @@
+path: /home/anirban/tamaghnam/EDGEAI/ALL_IDD/idd_yolov8n_instance_seg/datasets/idd_instance_seg
+train: images/train
+val: images/val
+names:
+  0: person_animal
+  1: rider
+  2: motorcycle_bicycle
+  3: autorickshaw_car
+  4: large_vehicle

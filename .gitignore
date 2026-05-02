@@ -1,0 +1,30 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Training outputs
+checkpoints/
+plots/
+runs/
+logs/
+*.log
+*.err
+
+# Large/generated compilation artifacts
+*.onnx
+*.har
+*_optimized.har
+*_compiled.har
+calib*.npy
+calib*.npz
+calib_images/
+calibration/
+
+# Optional local inputs
+*.mp4
+*.avi
+*.mov
+*.mkv
+
