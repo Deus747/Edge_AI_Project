@@ -26,14 +26,8 @@ The full pipeline is:
 
 ## 3. IDD Dataset Post-Processing
 
-The conversion logic is in `v.ipynb`. It reads the original IDD polygon annotations from `gtFine` and writes derived supervision targets.
+The conversion logic is in `idd_polygon_to_mask.ipynb`. It reads the original IDD polygon annotations from `gtFine` and writes derived supervision targets.
 
-Example configured source and output paths:
-
-```text
-DATADIR = E:\Datasets_ALL\Traffic Dataset\IDD-Segmentation
-OUT_BASEDIR = E:\Datasets_ALL\Traffic Dataset\IDD-Segmentation\LabelLevel2Id
-```
 
 The notebook exposes:
 
@@ -216,7 +210,6 @@ The Hailo-optimized LR-ASPP student uses deployment-friendly changes:
 
 - Fixed interpolation sizes of `128 x 128` and `512 x 512`.
 - `Sigmoid` instead of hard-sigmoid style operations.
-- ReLU-style activations instead of ReLU6 where needed.
 - Export mode returns a raw tensor instead of a dictionary.
 
 ### ConvNeXt Teacher
