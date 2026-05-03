@@ -239,10 +239,10 @@ The ConvNeXt UPerNet project uses:
 
 Two additional students were trained against the ConvNeXt teacher:
 
-| Project | Student |
-| --- | --- |
-| `idd_kd_project_student_mbv4large_deeplab` | MobileNetV4-L DeepLabV3+ |
-| `idd_kd_project_student_mbv4small_deeplabv3` | MobileNetV4-S DeepLabV3+ |
+| Student |
+| --- |
+| MobileNetV4-L DeepLabV3+ |
+| MobileNetV4-S DeepLabV3+ |
 
 ## 7. Logit Knowledge Distillation
 
@@ -313,7 +313,6 @@ Key observation: MobileNetV4-S DeepLabV3+ is a strong middle ground — it mater
 
 ## 9. YOLOv8n Instance Segmentation
 
-The YOLO project is in `combined_projects/idd_yolov8n_instance_seg`.
 
 The dataset bridge script creates a YOLO-compatible dataset at:
 
@@ -411,7 +410,7 @@ The Hailo logs show that optimization level was reduced to level 0 because only 
 
 Additional compile-log bottleneck FPS estimates:
 
-| Model | Bottleneck FPS |
+| Model | Raw FPS |
 | --- | ---: |
 | `model1_hailo` | 728.753 |
 | `model2_hailo` | 61.663 |
@@ -548,22 +547,9 @@ The logs support the following practical conclusions:
 
 ## 13. Known Limitations
 
-- GPU-cluster setup is not included in this report by request.
 - The MobileNetV4-L DeepLabV3+ Label2 run was only recorded to epoch 17 for the KD-D variant (not used); the logit KD run completed fully.
 - The Hailo logs indicate optimization level 0 due to limited calibration data and no GPU-assisted optimization. More calibration images and full optimization/QAT could improve quantized accuracy.
 - YOLO mask mAP is modest but remains useful as a dynamic-object overlay when combined with semantic segmentation.
 
-## 14. Final Deployment Artifacts
-
-The final demo depends on these artifacts:
-
-| Artifact | Location |
-| --- | --- |
-| Semantic HEFs | `Final__Demo/model1_hailo.hef`, `Final__Demo/model2_hailo.hef`, `Final__Demo/model3_hailo.hef` |
-| YOLO HEF | `Final__Demo/yolov8n_seg_hailo.hef` |
-| Demo app | `Final__Demo/python_if_models_switch_pipelined.py` |
-| Semantic Hailo workspaces | `model1_hailo`, `model2_hailo`, `model3_hailo` |
-| YOLO Hailo workspace | `yolov8n_seg_hailo` |
-| Training projects | `combined_projects/*` |
 
 The deployable system is a hybrid semantic-plus-instance perception pipeline: semantic segmentation supplies dense road-scene layout, YOLO supplies dynamic object instances, and the Raspberry Pi application fuses both outputs in real time through the Hailo accelerator.
